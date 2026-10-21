@@ -24,6 +24,24 @@
 <script>
   var GAS_URL = 'https://script.google.com/macros/s/AKfycbzMfJ5Zyfv8w3-OZ07i4bs6Cvasrr0YdAvuxxFdDEOUW16eVErwOWd7nk96DU8qDP9D/exec';
   var f = document.getElementById('app');
+  /* ログイン保持：アプリ（iframeの中）から預かったログイン情報を、この入口ページのlocalStorageに保管して返す */
+  function inside(win) {
+    try { for (var i = 0; i < 6 && win; i++) { if (win === f.contentWindow) return true; if (win.parent === win) return false; win = win.parent; } } catch (x) {}
+    return false;
+  }
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || !d.omson) return;
+    if (!(/^https:\/\/[a-z0-9-]+\.googleusercontent\.com$/.test(e.origin) || e.origin === 'https://script.google.com')) return;
+    if (!inside(e.source)) return;
+    if (d.omson === 'get-tok') {
+      var v = ''; try { v = localStorage.getItem('omson-tok') || ''; } catch (x) {}
+      e.source.postMessage({ omson: 'tok', v: v }, e.origin);
+    } else if (d.omson === 'set-tok') {
+      var t = String(d.v || '');
+      try { if (/^[0-9a-f]{20,100}$/.test(t)) localStorage.setItem('omson-tok', t); else if (t === '') localStorage.removeItem('omson-tok'); } catch (x) {}
+    }
+  });
   if (/^https:\/\/script\.google\.com\/.+\/exec/.test(GAS_URL)) {
     f.src = GAS_URL;
   } else {
